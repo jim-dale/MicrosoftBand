@@ -3,27 +3,78 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HealthCloudClient;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Newtonsoft.Json;
 
 namespace DataWrangler
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static JsonConverter _timeSpanConverter;
+
+        private static void Main(string[] args)
         {
+            _timeSpanConverter = new Iso8601DurationConverter();
+
+            var basePath = Directory.GetCurrentDirectory();
+
+            //var path = Path.Combine(basePath, "Daily Summary");
+            var path = Path.Combine(basePath, "Activities");
+            var matcher = new Matcher();
+            matcher.AddInclude("**/*.json");
+
+            var files = matcher.GetResultsInFullPath(path);
+
+            int totalBikeRides = 0;
+            int totalHikes = 0;
+
+            foreach (var file in files)
+            {
+                var str = File.ReadAllText(file);
+                var activities = JsonConvert.DeserializeObject<ActivitiesResponse>(str, _timeSpanConverter);
+
+                if (activities?.BikeActivities != null && activities.BikeActivities.Any())
+                {
+                    totalBikeRides += activities.BikeActivities.Length;
+                }
+                if (activities?.HikeActivities != null && activities.HikeActivities.Any())
+                {
+                    totalHikes += activities.HikeActivities.Length;
+
+                    var hike = activities.HikeActivities[0];
+
+                    if (hike.MapPoints != null)
+                    {
+                        var points = from mp in hike.MapPoints
+                                     where mp.Location != null
+                                     select new
+                                     {
+                                         mp.MapPointType,
+                                         mp.Location.Latitude,
+                                         mp.Location.Longitude,
+                                     };
+
+                        foreach (var point in points)
+                        {
+                            Console.WriteLine($"{point.MapPointType},{point.Latitude},{point.Longitude}");
+                        }
+                    }
+                    break;
+                }
+            }
+
+            Console.WriteLine($"{totalBikeRides},{totalHikes}");
+            //var dailySummaries = GetAllDailySummaries(files);
+
             //var summaries = GetAllHourlySummaries();
             //var items = GetCaloriesByHourOfEachDay(summaries);
             //var items = GetDistanceByHourByDayOfWeek(summaries);
 
             //SaveAsTsv(items, "data2.tsv");
 
+            //var items = GetDistanceByDay(dailySummaries);
 
-            //string json = JsonConvert.SerializeObject(items);
-
-
-            var dailySummaries = GetAllDailySummaries();
-            var items = GetDistanceByDay(dailySummaries);
-            SaveAsTsv(items, @"D:\tmp\data3.tsv");
+            //SaveAsTsv(items, @"data3.tsv");
         }
 
         private static void SaveAsTsv(IEnumerable<CaloriesByHourEachDay> items, string path)
@@ -107,26 +158,16 @@ namespace DataWrangler
             return query;
         }
 
-        private static List<Summary> GetAllDailySummaries()
+        private static List<Summary> GetAllDailySummaries(IEnumerable<string> files)
         {
-            var path = @"%WORK_DRIVE%%HOMEPATH%\Documents\Documents\Exercise\DailySummaries";
-            path = Environment.ExpandEnvironmentVariables(path);
-
-            var files = Directory.EnumerateFiles(path);
-
             var query = from file in files
                         let s = GetSummary(file)
                         select s;
             return query.ToList();
         }
 
-        private static List<Summary> GetAllHourlySummaries()
+        private static List<Summary> GetAllHourlySummaries(IEnumerable<string> files)
         {
-            var path = @"%WORK_DRIVE%%HOMEPATH%\Documents\Documents\Exercise\HourlySummaries";
-            path = Environment.ExpandEnvironmentVariables(path);
-
-            var files = Directory.EnumerateFiles(path);
-
             var query = from file in files
                         from s in GetSummaries(file)
                         select s;
@@ -146,25 +187,5 @@ namespace DataWrangler
             var response = JsonConvert.DeserializeObject<SummaryResponse>(json, new Iso8601DurationConverter());
             return response.Summaries[0];
         }
-    }
-
-    internal class DistanceByDay
-    {
-        public string date { get; set; }
-        public int? value { get; set; }
-    }
-
-    internal class CaloriesByHourEachDay
-    {
-        public int day { get; set; }
-        public int hour { get; set; }
-        public int value { get; set; }
-    }
-
-    internal class StepsByMonth
-    {
-        public int Year { get; set; }
-        public int Month { get; set; }
-        public int? StepsTaken { get; set; }
     }
 }

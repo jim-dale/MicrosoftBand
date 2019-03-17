@@ -7,7 +7,7 @@ namespace HealthSdkPrototype
 
     internal static partial class AppSettingsExtensionsJson
     {
-        private const string DefaultSettingsFileName = "appsettings.json";
+        private const string DefaultSettingsFileName = "downloaddata.appsettings.json";
         private static readonly JsonSerializerSettings _jsSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
 
         public static AppSettings FromJsonFile(this AppSettings result, string path = DefaultSettingsFileName, bool optional = false)

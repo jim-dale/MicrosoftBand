@@ -7,7 +7,7 @@ namespace HealthSdkPrototype
 
     internal static partial class AppStateExtensions
     {
-        private const string DefaultFileName = "appstate.json";
+        private const string DefaultFileName = "downloaddata.appstate.json";
         private static readonly JsonSerializerSettings _jsSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
 
         public static AppState FromJsonFile(this AppState result, string path = DefaultFileName, bool optional = false)

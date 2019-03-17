@@ -17,7 +17,7 @@ namespace HealthCloudClient
         /// <value>The split distance used for the segment</value>
         public int? SplitDistance { get; set; }
         /// <value>The unique identifier of the segment</value>
-        public int? SegmentId { get; set; }
+        public long? SegmentId { get; set; }
         /// <value>The start time of the segment</value>
         public DateTime? StartTime { get; set; }
         /// <value>The end time of the segment</value>
