@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Device.Location;
 using System.IO;
 using System.Linq;
 using HealthCloudClient;
@@ -41,25 +42,38 @@ namespace DataWrangler
                 {
                     totalHikes += activities.HikeActivities.Length;
 
-                    var hike = activities.HikeActivities[0];
-
-                    if (hike.MapPoints != null)
+                    foreach (var hike in activities.HikeActivities)
                     {
-                        var points = from mp in hike.MapPoints
-                                     where mp.Location != null
-                                     select new
-                                     {
-                                         mp.MapPointType,
-                                         mp.Location.Latitude,
-                                         mp.Location.Longitude,
-                                     };
-
-                        foreach (var point in points)
+                        if (hike.MapPoints != null)
                         {
-                            Console.WriteLine($"{point.MapPointType},{point.Latitude},{point.Longitude}");
+                            //hike.MapPoints.SaveToXmlFile("blah.gpx");
+
+                            var points = from mp in hike.MapPoints
+                                         where mp.Location != null
+                                         orderby mp.Ordinal
+                                         select new
+                                         {
+                                             mp.Ordinal,
+                                             mp.MapPointType,
+                                             mp.ActualDistance,
+                                             Coord = new GeoCoordinate((double)mp.Location.Latitude / 10_000_000, (double)mp.Location.Longitude / 10_000_000)
+                                         };
+
+                            double distance1 = 0.0;
+                            var lastCoord = default(GeoCoordinate);
+
+                            foreach (var point in points)
+                            {
+                                Console.WriteLine($"{point.Ordinal},{point.MapPointType},{point.ActualDistance},{point.Coord.Latitude},{point.Coord.Longitude}");
+                                if (lastCoord != null)
+                                {
+                                    distance1 += lastCoord.GetDistanceTo(point.Coord);
+                                }
+                                lastCoord = point.Coord;
+                            }
+                            Console.WriteLine($"Id:{hike.Id},Start Time:{hike.StartTime},Distance:{distance1}");
                         }
                     }
-                    break;
                 }
             }
 
